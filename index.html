@@ -1,0 +1,643 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Karadeniz Restaurant</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,600&family=Jost:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --navy:   #0a1628;
+  --navy2:  #0d1f3c;
+  --gold:   #c9a84c;
+  --gold2:  #e8c97a;
+  --gold3:  #f5e4a8;
+  --cream:  #f8f0e0;
+  --text:   #f0e8d8;
+  --muted:  rgba(240,232,216,0.5);
+  --border: rgba(201,168,76,0.2);
+  --r:      14px;
+}
+* { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+html { scroll-behavior: smooth; }
+
+body {
+  font-family: 'Jost', sans-serif;
+  background: var(--navy);
+  color: var(--text);
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* ── Ornament pattern bg ── */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image:
+    radial-gradient(circle at 20% 20%, rgba(201,168,76,0.04) 0%, transparent 50%),
+    radial-gradient(circle at 80% 80%, rgba(201,168,76,0.04) 0%, transparent 50%);
+  z-index: 0;
+  pointer-events: none;
+}
+
+/* ── LOADER ── */
+.loader {
+  position: fixed; inset: 0; z-index: 999;
+  background: var(--navy);
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center; gap: 20px;
+}
+.loader-logo {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 42px; font-weight: 700;
+  color: var(--gold);
+  letter-spacing: 4px;
+  text-transform: uppercase;
+  animation: shimmer 2s ease-in-out infinite;
+}
+.loader-sub {
+  font-size: 11px; letter-spacing: 4px;
+  text-transform: uppercase; color: var(--muted);
+}
+.loader-line {
+  width: 60px; height: 1px;
+  background: linear-gradient(90deg, transparent, var(--gold), transparent);
+  animation: expand 1.5s ease-in-out infinite;
+}
+@keyframes shimmer { 0%,100%{opacity:1} 50%{opacity:0.6} }
+@keyframes expand { 0%,100%{width:40px;opacity:0.5} 50%{width:80px;opacity:1} }
+.loader.hide { animation: fadeOut 0.5s forwards; }
+@keyframes fadeOut { to { opacity:0; pointer-events:none; } }
+
+/* ── APP ── */
+.app { position: relative; z-index: 1; display: none; min-height: 100vh; }
+.app.ready { display: block; }
+
+/* ── HERO ── */
+.hero {
+  position: relative;
+  padding: 40px 20px 32px;
+  text-align: center;
+  overflow: hidden;
+}
+.hero::before {
+  content: '';
+  position: absolute; inset: 0;
+  background: linear-gradient(180deg, rgba(201,168,76,0.08) 0%, transparent 100%);
+}
+.hero-ornament {
+  font-size: 11px; letter-spacing: 5px; text-transform: uppercase;
+  color: var(--gold); margin-bottom: 12px; opacity: 0.8;
+}
+.hero-logo {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 38px; font-weight: 700;
+  color: var(--gold);
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  line-height: 1.1;
+  margin-bottom: 6px;
+}
+.hero-sub {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 16px; font-style: italic;
+  color: var(--muted); margin-bottom: 16px;
+  letter-spacing: 1px;
+}
+.hero-divider {
+  display: flex; align-items: center; gap: 12px;
+  justify-content: center; margin-bottom: 14px;
+}
+.hero-divider span { font-size: 18px; color: var(--gold); }
+.hero-line { flex: 1; max-width: 60px; height: 1px;
+  background: linear-gradient(90deg, transparent, var(--gold)); }
+.hero-line.r { background: linear-gradient(90deg, var(--gold), transparent); }
+.halal-badge {
+  display: inline-flex; align-items: center; gap: 8px;
+  background: rgba(201,168,76,0.1); border: 1px solid var(--border);
+  border-radius: 20px; padding: 6px 16px;
+  font-size: 12px; letter-spacing: 2px; color: var(--gold);
+  text-transform: uppercase;
+}
+
+/* ── QUICK ACTIONS ── */
+.quick { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; padding: 0 16px 20px; }
+.quick-btn {
+  background: rgba(201,168,76,0.06);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  padding: 16px 12px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s;
+  color: var(--text);
+}
+.quick-btn:active { transform: scale(0.97); background: rgba(201,168,76,0.12); }
+.quick-ico { font-size: 22px; margin-bottom: 6px; display: block; }
+.quick-lbl { font-size: 12px; color: var(--muted); letter-spacing: 0.5px; }
+
+/* ── TABS ── */
+.tabs {
+  display: flex; gap: 0;
+  border-bottom: 1px solid var(--border);
+  padding: 0 16px;
+  overflow-x: auto; scrollbar-width: none;
+}
+.tabs::-webkit-scrollbar { display: none; }
+.tab {
+  font-size: 12px; letter-spacing: 1px; text-transform: uppercase;
+  padding: 12px 16px; cursor: pointer; color: var(--muted);
+  border-bottom: 2px solid transparent; transition: all 0.2s;
+  white-space: nowrap; flex-shrink: 0;
+}
+.tab.active { color: var(--gold); border-bottom-color: var(--gold); }
+
+/* ── CONTENT ── */
+.content { padding: 16px; }
+.screen { display: none; animation: fadeUp 0.25s ease; }
+.screen.active { display: block; }
+@keyframes fadeUp { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:none} }
+
+/* ── MENU CATS ── */
+.cat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 20px; }
+.cat-card {
+  background: rgba(201,168,76,0.05);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  padding: 18px 12px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.cat-card:active { transform: scale(0.97); background: rgba(201,168,76,0.12); }
+.cat-card.active { background: rgba(201,168,76,0.15); border-color: var(--gold); }
+.cat-ico { font-size: 26px; margin-bottom: 6px; display: block; }
+.cat-name { font-size: 12px; color: var(--muted); letter-spacing: 0.3px; }
+
+/* ── MENU ITEMS ── */
+.menu-section { margin-bottom: 8px; }
+.menu-section-title {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 20px; font-weight: 600; color: var(--gold);
+  margin-bottom: 12px; padding-bottom: 8px;
+  border-bottom: 1px solid var(--border);
+  letter-spacing: 1px;
+}
+.menu-item {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 10px 0;
+  border-bottom: 1px solid rgba(201,168,76,0.07);
+}
+.menu-item:last-child { border-bottom: none; }
+.menu-item-name { font-size: 14px; font-weight: 400; flex: 1; }
+.menu-item-price {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 16px; font-weight: 600;
+  color: var(--gold); white-space: nowrap; margin-left: 12px;
+}
+.back-btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  color: var(--gold); font-size: 13px; cursor: pointer;
+  margin-bottom: 16px; letter-spacing: 0.5px;
+  background: none; border: none;
+}
+.back-btn:active { opacity: 0.7; }
+
+/* ── INFO CARDS ── */
+.info-card {
+  background: rgba(201,168,76,0.05);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  padding: 20px;
+  margin-bottom: 10px;
+  position: relative; overflow: hidden;
+}
+.info-card::before {
+  content: '';
+  position: absolute; top: 0; left: 0; right: 0; height: 1px;
+  background: linear-gradient(90deg, transparent, var(--gold), transparent);
+}
+.info-card-title {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 11px; letter-spacing: 3px;
+  text-transform: uppercase; color: var(--gold);
+  margin-bottom: 12px;
+}
+.info-row {
+  display: flex; gap: 12px; align-items: flex-start;
+  padding: 8px 0; border-bottom: 1px solid rgba(201,168,76,0.07);
+}
+.info-row:last-child { border-bottom: none; }
+.info-ico { font-size: 16px; flex-shrink: 0; margin-top: 1px; }
+.info-text { font-size: 13px; line-height: 1.5; }
+.info-text small { color: var(--muted); font-size: 11px; display: block; }
+
+/* ── MAP BTN ── */
+.map-btn {
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  width: 100%; padding: 14px;
+  background: linear-gradient(135deg, rgba(201,168,76,0.15), rgba(201,168,76,0.08));
+  border: 1px solid var(--gold);
+  border-radius: var(--r);
+  color: var(--gold);
+  font-family: 'Jost', sans-serif;
+  font-size: 13px; letter-spacing: 1px; text-transform: uppercase;
+  cursor: pointer; text-decoration: none;
+  transition: all 0.2s; margin-top: 12px;
+}
+.map-btn:active { transform: scale(0.98); }
+
+/* ── BOOK FORM ── */
+.book-title {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 28px; font-weight: 600; color: var(--gold);
+  margin-bottom: 6px; letter-spacing: 1px;
+}
+.book-sub { font-size: 13px; color: var(--muted); margin-bottom: 20px; line-height: 1.5; }
+.field-group { margin-bottom: 14px; }
+.field-label {
+  font-size: 10px; letter-spacing: 2px; text-transform: uppercase;
+  color: var(--gold); margin-bottom: 6px; display: block;
+}
+.field-input {
+  width: 100%;
+  background: rgba(201,168,76,0.05);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 12px 14px;
+  color: var(--text);
+  font-family: 'Jost', sans-serif;
+  font-size: 14px;
+  outline: none;
+  transition: border-color 0.2s;
+}
+.field-input:focus { border-color: var(--gold); }
+.field-input::placeholder { color: var(--muted); font-size: 13px; }
+select.field-input option { background: var(--navy2); }
+.submit-btn {
+  width: 100%; padding: 15px;
+  background: linear-gradient(135deg, var(--gold), var(--gold2));
+  border: none; border-radius: var(--r);
+  color: var(--navy);
+  font-family: 'Jost', sans-serif;
+  font-size: 13px; font-weight: 600;
+  letter-spacing: 2px; text-transform: uppercase;
+  cursor: pointer; transition: all 0.2s;
+  margin-top: 6px;
+}
+.submit-btn:active { transform: scale(0.98); opacity: 0.9; }
+
+/* ── SUCCESS ── */
+.success {
+  text-align: center; padding: 40px 20px;
+  animation: fadeUp 0.4s ease;
+}
+.success-ico { font-size: 50px; margin-bottom: 16px; }
+.success-title {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 26px; color: var(--gold); margin-bottom: 8px;
+}
+.success-sub { font-size: 13px; color: var(--muted); line-height: 1.6; }
+
+/* ── TOAST ── */
+.toast {
+  position: fixed; bottom: 24px; left: 16px; right: 16px;
+  background: linear-gradient(135deg, var(--gold), var(--gold2));
+  color: var(--navy);
+  padding: 14px 20px; border-radius: var(--r);
+  font-size: 13px; font-weight: 600; text-align: center;
+  transform: translateY(80px); opacity: 0;
+  transition: all 0.35s cubic-bezier(.175,.885,.32,1.275);
+  z-index: 999; letter-spacing: 0.5px;
+}
+.toast.show { transform: translateY(0); opacity: 1; }
+
+/* ── SECTION TITLE ── */
+.section-title {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 11px; letter-spacing: 4px; text-transform: uppercase;
+  color: var(--gold); margin-bottom: 14px; padding-left: 2px;
+}
+</style>
+</head>
+<body>
+
+<div class="loader" id="loader">
+  <div class="loader-logo">Karadeniz</div>
+  <div class="loader-line"></div>
+  <div class="loader-sub">Restaurant</div>
+</div>
+
+<div class="app" id="app">
+
+  <!-- HERO -->
+  <div class="hero">
+    <div class="hero-ornament">✦ Toshkent ✦</div>
+    <div class="hero-logo">Karadeniz</div>
+    <div class="hero-sub">Restaurant</div>
+    <div class="hero-divider">
+      <div class="hero-line"></div>
+      <span>✦</span>
+      <div class="hero-line r"></div>
+    </div>
+    <div class="halal-badge">حلال &nbsp; Halal &nbsp; ✅</div>
+  </div>
+
+  <!-- QUICK ACTIONS -->
+  <div class="quick">
+    <div class="quick-btn" onclick="switchTab('menu')">
+      <span class="quick-ico">🍽</span>
+      <div class="quick-lbl">Меню</div>
+    </div>
+    <div class="quick-btn" onclick="switchTab('book')">
+      <span class="quick-ico">🎯</span>
+      <div class="quick-lbl">Бронирование</div>
+    </div>
+    <div class="quick-btn" onclick="switchTab('info')">
+      <span class="quick-ico">📍</span>
+      <div class="quick-lbl">Адрес</div>
+    </div>
+    <div class="quick-btn" onclick="switchTab('contacts')">
+      <span class="quick-ico">📞</span>
+      <div class="quick-lbl">Контакты</div>
+    </div>
+  </div>
+
+  <!-- TABS -->
+  <div class="tabs">
+    <div class="tab active" id="t-menu" onclick="switchTab('menu')">Меню</div>
+    <div class="tab" id="t-book" onclick="switchTab('book')">Бронь</div>
+    <div class="tab" id="t-info" onclick="switchTab('info')">Адрес</div>
+    <div class="tab" id="t-contacts" onclick="switchTab('contacts')">Контакты</div>
+  </div>
+
+  <div class="content">
+
+    <!-- MENU -->
+    <div class="screen active" id="s-menu">
+      <div id="menu-cats">
+        <div class="section-title">Выберите категорию</div>
+        <div class="cat-grid" id="cat-grid"></div>
+      </div>
+      <div id="menu-items" style="display:none"></div>
+    </div>
+
+    <!-- BOOK -->
+    <div class="screen" id="s-book">
+      <div id="book-form">
+        <div class="book-title">Бронирование стола</div>
+        <div class="book-sub">Заполните форму и мы подтвердим бронь в течение нескольких минут</div>
+
+        <div class="field-group">
+          <label class="field-label">Ваше имя</label>
+          <input class="field-input" id="b-name" type="text" placeholder="Например: Азиз">
+        </div>
+        <div class="field-group">
+          <label class="field-label">Дата</label>
+          <input class="field-input" id="b-date" type="date">
+        </div>
+        <div class="field-group">
+          <label class="field-label">Время</label>
+          <select class="field-input" id="b-time">
+            <option value="">Выберите время</option>
+            <option>09:00</option><option>10:00</option><option>11:00</option>
+            <option>12:00</option><option>13:00</option><option>14:00</option>
+            <option>15:00</option><option>16:00</option><option>17:00</option>
+            <option>18:00</option><option>19:00</option><option>20:00</option>
+            <option>21:00</option><option>22:00</option>
+          </select>
+        </div>
+        <div class="field-group">
+          <label class="field-label">Количество гостей</label>
+          <select class="field-input" id="b-guests">
+            <option value="">Выберите</option>
+            <option>1 гость</option><option>2 гостя</option><option>3 гостя</option>
+            <option>4 гостя</option><option>5 гостей</option><option>6 гостей</option>
+            <option>7–10 гостей</option><option>Более 10 гостей</option>
+          </select>
+        </div>
+        <div class="field-group">
+          <label class="field-label">Номер телефона</label>
+          <input class="field-input" id="b-phone" type="tel" placeholder="+998 90 000 00 00">
+        </div>
+        <button class="submit-btn" onclick="submitBook()">Забронировать стол</button>
+      </div>
+      <div id="book-success" style="display:none">
+        <div class="success">
+          <div class="success-ico">🎉</div>
+          <div class="success-title">Заявка принята!</div>
+          <div class="success-sub">Мы свяжемся с вами в ближайшее время для подтверждения брони.<br><br>Ждём вас в Karadeniz! 🌿</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- INFO -->
+    <div class="screen" id="s-info">
+      <div class="info-card">
+        <div class="info-card-title">Адрес</div>
+        <div class="info-row">
+          <span class="info-ico">📍</span>
+          <div class="info-text">
+            Shota Rustaveli ko'chasi 69
+            <small>100070, Toshkent</small>
+          </div>
+        </div>
+        <div class="info-row">
+          <span class="info-ico">🕐</span>
+          <div class="info-text">
+            Ежедневно: 09:00 – 23:00
+            <small>Без выходных</small>
+          </div>
+        </div>
+        <div class="info-row">
+          <span class="info-ico">🅿️</span>
+          <div class="info-text">Парковка доступна</div>
+        </div>
+      </div>
+      <a class="map-btn" href="https://maps.google.com/?q=41.2995,69.2401" target="_blank">
+        🗺 Открыть на Google Maps
+      </a>
+    </div>
+
+    <!-- CONTACTS -->
+    <div class="screen" id="s-contacts">
+      <div class="info-card">
+        <div class="info-card-title">Контакты</div>
+        <div class="info-row">
+          <span class="info-ico">📸</span>
+          <div class="info-text">
+            Instagram
+            <small>@karadeniz.uz</small>
+          </div>
+        </div>
+        <div class="info-row">
+          <span class="info-ico">🌐</span>
+          <div class="info-text">
+            Сайт
+            <small>karadeniz.uz</small>
+          </div>
+        </div>
+        <div class="info-row">
+          <span class="info-ico">📍</span>
+          <div class="info-text">
+            Shota Rustaveli 69, Tashkent
+            <small>Ежедневно 09:00 – 23:00</small>
+          </div>
+        </div>
+      </div>
+      <a class="map-btn" href="https://instagram.com/karadeniz.uz" target="_blank">
+        📸 Instagram @karadeniz.uz
+      </a>
+      <a class="map-btn" href="https://karadeniz.uz" target="_blank" style="margin-top:8px">
+        🌐 karadeniz.uz
+      </a>
+    </div>
+
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const tg = window.Telegram?.WebApp;
+if (tg) { tg.ready(); tg.expand(); }
+
+const MENU = {
+  "🥗 Салаты": [
+    ["Shakarob", 25000], ["Салат Оливье", 52000], ["Caprese salatasi", 72000],
+    ["Yunan salatasi", 75000], ["Karadeniz salatasi", 75000],
+    ["Sezar salatasi", 75000], ["Burrata salatasi", 75000], ["Çoban salatasi", 55000],
+  ],
+  "🥙 Кебабы": [
+    ["Domatesli kebap", 79000], ["Urfa kebap", 79000], ["Adana kebap", 79000],
+    ["Beyti sarma", 95000], ["Kuzu şiş", 95000], ["Tavuk şiş", 85000],
+    ["1 kişilik kebap assorti", 255000], ["4 kişilik kebap assorti", 666000],
+  ],
+  "🥩 Стейки": [
+    ["T-Bone Steak", 285000], ["Dallas Steak", 285000],
+    ["Rib-Eye Steak", 215000], ["New York Steak", 215000],
+    ["Filet Mignon", 205000], ["Lokum Steak", 205000], ["Dana Antrikot", 185000],
+  ],
+  "🍝 Горячие блюда": [
+    ["Güveç kavurma", 135000], ["Tavuk sate", 75000], ["Et sate", 105000],
+    ["Sac tava", 115000], ["Manti porsiya", 55000], ["Norin", 55000],
+    ["Pasta Bolognese", 85000], ["Pasta Alfredo", 85000],
+  ],
+  "🍣 Суши и Роллы": [
+    ["Tempura losos", 72000], ["Filadelfia s lososom", 105000],
+    ["Tempura tovuq", 68000], ["Zalyonniy utg", 95000],
+    ["Kaliforniya", 72000], ["Cheddar roll", 68000], ["Karadeniz nabori", 295000],
+  ],
+  "🍕 Пиде и Пицца": [
+    ["Karadeniz pidesi", 65000], ["Kavurmalı pide", 85000], ["Karışık pide", 75000],
+    ["Pizza Pepperoni", 65000], ["Pizza Mix", 78000],
+    ["Pizza Karadeniz", 78000], ["Pizza Quattro Formaggi", 65000],
+  ],
+  "🐟 Морепродукты": [
+    ["Somon balığı", 225000], ["Levrek balığı", 175000],
+    ["Dorado balığı", 175000], ["Kremali karides", 125000],
+    ["Tereyağında karides", 125000], ["Hamsa", 85000],
+  ],
+  "🍰 Десерты": [
+    ["Klasik baklava", 20000], ["Sütlü baklava", 27000], ["Fıstık sarma", 20000],
+    ["Trileçe", 25000], ["Künefe", 75000], ["Katmer", 105000],
+    ["San Sebastian", 55000], ["Ahududulu cheesecake", 49000],
+  ],
+  "☕ Напитки": [
+    ["Americano", 31000], ["Cappuccino", 31000], ["Latte", 31000],
+    ["Türk kahvesi", 35000], ["Karadeniz çayı", 45000],
+    ["Klasik milkshake", 55000], ["Klasik mojito", 35000], ["Limonata", 45000],
+  ],
+};
+
+// Build cat grid
+const grid = document.getElementById('cat-grid');
+Object.keys(MENU).forEach((cat, i) => {
+  const d = document.createElement('div');
+  d.className = 'cat-card';
+  d.innerHTML = `<span class="cat-ico">${cat.split(' ')[0]}</span><div class="cat-name">${cat.substring(cat.indexOf(' ')+1)}</div>`;
+  d.onclick = () => showCat(cat);
+  grid.appendChild(d);
+});
+
+function showCat(cat) {
+  document.getElementById('menu-cats').style.display = 'none';
+  const items = MENU[cat];
+  const el = document.getElementById('menu-items');
+  el.innerHTML = `
+    <button class="back-btn" onclick="showCats()">← Все категории</button>
+    <div class="menu-section">
+      <div class="menu-section-title">${cat}</div>
+      ${items.map(([n,p]) => `
+        <div class="menu-item">
+          <span class="menu-item-name">${n}</span>
+          <span class="menu-item-price">${p.toLocaleString()} сум</span>
+        </div>`).join('')}
+    </div>
+  `;
+  el.style.display = 'block';
+  window.scrollTo(0,0);
+}
+
+function showCats() {
+  document.getElementById('menu-items').style.display = 'none';
+  document.getElementById('menu-cats').style.display = 'block';
+}
+
+function switchTab(name) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(`t-${name}`)?.classList.add('active');
+  document.getElementById(`s-${name}`)?.classList.add('active');
+  window.scrollTo(0,0);
+}
+
+function submitBook() {
+  const name   = document.getElementById('b-name').value.trim();
+  const date   = document.getElementById('b-date').value;
+  const time   = document.getElementById('b-time').value;
+  const guests = document.getElementById('b-guests').value;
+  const phone  = document.getElementById('b-phone').value.trim();
+
+  if (!name || !date || !time || !guests || !phone) {
+    toast('⚠️ Заполните все поля');
+    return;
+  }
+
+  if (tg) {
+    tg.sendData(JSON.stringify({
+      action: 'book', name, date, time, guests, phone
+    }));
+  }
+
+  document.getElementById('book-form').style.display = 'none';
+  document.getElementById('book-success').style.display = 'block';
+}
+
+function toast(msg, ms=2500) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), ms);
+}
+
+// Set min date to today
+const dateInput = document.getElementById('b-date');
+if (dateInput) {
+  const today = new Date().toISOString().split('T')[0];
+  dateInput.min = today;
+  dateInput.value = today;
+}
+
+setTimeout(() => {
+  document.getElementById('loader').classList.add('hide');
+  setTimeout(() => {
+    document.getElementById('loader').style.display = 'none';
+    document.getElementById('app').classList.add('ready');
+  }, 500);
+}, 1200);
+</script>
+</body>
+</html>
